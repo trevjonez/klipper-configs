@@ -7,8 +7,17 @@ function gcodeLoop() {
   done
 }
 
-function klippyTraceback {
+function klippyTraceback() {
   grep -Hn -C 30 "Traceback" /tmp/klippy.log
 }
 
+function klippyClearLog() {
+  > /tmp/klippy.log
+}
+
+function klippyConsole() {
+  tmuxinator start klippy
+}
+
+export EDITOR='vim'
 export PATH="$PATH:/snap/bin:$HOME/.gem/bin"
