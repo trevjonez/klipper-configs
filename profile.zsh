@@ -1,4 +1,6 @@
 function gcodeLoop() {
+  cd ~/virtual_sdcard/gcodes
+  # Run within the gcodes directory so we can tab complete file names
   clear
   while true; do
     gcode=""
