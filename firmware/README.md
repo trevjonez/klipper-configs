@@ -14,8 +14,8 @@ See `docs/voron-upgrade.md` in the `home-network` repo for the full procedure.
 | `mcu` | BTT Octopus Pro **F429** | `octopus-f429.config` | USB | [docs](https://github.com/bigtreetech/docs/blob/master/docs/Octopus%20Pro.md) · [repo](https://github.com/bigtreetech/BIGTREETECH-OCTOPUS-Pro) |
 | `EBB` | BTT EBB SB2209 **USB** | `rp2040-ebb.config` | USB | [docs](https://github.com/bigtreetech/docs/blob/master/docs/EBB%20SB2209%20USB.md) · [repo](https://github.com/bigtreetech/EBB) |
 | `EDDY` | BTT Eddy | `rp2040-hbb-eddy.config` | USB, via the EBB's hub | [docs](https://github.com/bigtreetech/docs/blob/master/docs/Eddy.md) · [repo](https://github.com/bigtreetech/Eddy) |
-| `mmu` | BTT MMB CAN V1.0 (`MMB10`) | `mmb-g0b1.config` | CAN | [docs](https://github.com/bigtreetech/docs/blob/master/docs/MMB%20CAN%20V1.0.md) |
-| `DRYBOX` | BTT MMB CAN V1.0 | `mmb-g0b1.config` | CAN | same as above |
+| `mmu` | BTT MMB CAN V1.0 (`MMB10`) | `mmb-g0b1-mmu.config` | CAN | [docs](https://github.com/bigtreetech/docs/blob/master/docs/MMB%20CAN%20V1.0.md) |
+| `DRYBOX` | BTT MMB CAN V1.0 | `mmb-g0b1-drybox.config` | CAN | same as above |
 | `HBB` | BTT HBB&FE V1.0 (macro pad, RGB key switches) | `rp2040-hbb-eddy.config` | USB | [repo](https://github.com/bigtreetech/HBB) · [sample cfg](https://github.com/bigtreetech/HBB/blob/master/sample-bigtreetech-hbb.cfg) |
 | — | BTT U2C V2 (CAN adapter) | not Klipper | USB → `can0` | [docs](https://github.com/bigtreetech/docs/blob/master/docs/U2C.md) · [repo](https://github.com/bigtreetech/U2C) |
 
@@ -47,7 +47,7 @@ remains commented out in `voron.cfg` from the previous CAN toolhead board.
 | Board | Bootloader offset | Clock reference | Interface |
 |---|---|---|---|
 | Octopus Pro F429 | 32 KiB (`FLASH_START_8000`) | **8 MHz crystal** | USB on PA11/PA12 |
-| MMB CAN V1.0 | 8 KiB (`FLASH_START_2000`, Katapult) | 8 MHz | CAN on PB0/PB1, 1 Mbit |
+| MMB CAN V1.0 ×2 | 8 KiB (`FLASH_START_2000`, Katapult) | 8 MHz | CAN on PB0/PB1, 1 Mbit |
 | EBB SB2209 USB | none (`FLASH_START_0100`) | — | USB |
 | Eddy / HBB | none (`FLASH_START_0100`) | — | USB |
 
@@ -70,12 +70,25 @@ Set per board, and **not** interchangeable:
 |---|---|---|
 | `mcu` | `PA8,PE5` | `[heater_fan controller_fan]`, `[heater_fan exhaust_fan]` |
 | `EBB` | `gpio4,gpio14` | part cooling `[fan]`, `[heater_fan hotend_fan]` |
-| `HBB`, `EDDY`, `mmu`, `DRYBOX` | none | — |
+| `DRYBOX` | `PB2` | `[heater_fan drybox_fan]` — all three box fans share this pin |
+| `HBB`, `EDDY`, `mmu` | none | — |
 
 Pins are driven **high** at MCU boot, before klippy connects. Kept deliberately
 on the main board and the EBB: the hotend fan is the one that actually matters
 for thermal safety, and the bay/exhaust fans running early is harmless.
 
 This is the only difference between `rp2040-ebb.config` and
-`rp2040-hbb-eddy.config` — flashing HBB or EDDY with the EBB config would assert
-two pins that mean nothing on those boards.
+`rp2040-hbb-eddy.config`, and likewise the only difference between
+`mmb-g0b1-mmu.config` and `mmb-g0b1-drybox.config`. Flashing HBB or EDDY with the
+EBB config, or the MMU board with the drybox config, would assert pins that mean
+nothing on those boards.
+
+The two MMBs are identical hardware, so the MMU board's `PB2` is the same
+physical header as the drybox's fan output. It is unused in the Klipper config,
+but that is not the same as safe to drive high — hence two configs rather than
+one shared `INITIAL_PINS`.
+
+The drybox heater is AC and lives on `PA1` of the same MCU, so a cold boot with
+no klippy leaves the element unpowered. `PB2` is set anyway so the fans spin
+after an unexpected reboot rather than sitting still in a box holding residual
+heat. `shutdown_speed: 1.0` already covers the klippy-disconnect case.

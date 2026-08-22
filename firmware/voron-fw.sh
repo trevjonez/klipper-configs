@@ -32,8 +32,8 @@ DRY=0; ASSUME_YES=0; KEEP_KLIPPER=0; FROM=""
 # Order matters: main board LAST. Its flash offset is inferred, so everything
 # else should be known-good before it is touched.
 BOARDS=(
-"mmu|mmb-g0b1|katapult|ff345a743db9|MMB stm32g0b1 (MMU) on CAN"
-"drybox|mmb-g0b1|katapult|d9626e1b839e|MMB stm32g0b1 (drybox) on CAN"
+"mmu|mmb-g0b1-mmu|katapult|ff345a743db9|MMB stm32g0b1 (MMU) on CAN"
+"drybox|mmb-g0b1-drybox|katapult|d9626e1b839e|MMB stm32g0b1 (drybox) on CAN"
 "hbb|rp2040-hbb-eddy|rp2040|/dev/serial/by-id/usb-Klipper_rp2040_45474E621B056C7A-if00|HBB rp2040 on USB"
 "eddy|rp2040-hbb-eddy|rp2040|/dev/serial/by-id/usb-Klipper_rp2040_504434031060B01C-if00|BTT Eddy rp2040 on USB"
 "ebb|rp2040-ebb|rp2040|/dev/serial/by-id/usb-Klipper_rp2040_5044340310CA481C-if00|EBB toolhead rp2040 on USB"
