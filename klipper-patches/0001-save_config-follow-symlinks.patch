@@ -1,0 +1,18 @@
+diff --git a/klippy/configfile.py b/klippy/configfile.py
+index 6091d78c5..a3e40da9a 100644
+--- a/klippy/configfile.py
++++ b/klippy/configfile.py
+@@ -379,6 +379,13 @@ class ConfigAutoSave:
+             raise gcmd.error(msg)
+         self._disallow_include_conflicts(regular_fileconfig)
+         # Determine filenames
++        # Follow symlinks so the renames below replace the file the link
++        # points at instead of the link itself. Without this, SAVE_CONFIG
++        # moves the symlink aside as printer-<date>.cfg and writes a regular
++        # file in its place, silently detaching the config from its target.
++        # Must happen after build_fileconfig_with_includes() above, which
++        # resolves relative [include] paths against the original config dir.
++        cfgname = os.path.realpath(cfgname)
+         datestr = time.strftime("-%Y%m%d_%H%M%S")
+         backup_name = cfgname + datestr
+         temp_name = cfgname + "_autosave"
