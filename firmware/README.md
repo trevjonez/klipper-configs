@@ -92,3 +92,64 @@ The drybox heater is AC and lives on `PA1` of the same MCU, so a cold boot with
 no klippy leaves the element unpowered. `PB2` is set anyway so the fans spin
 after an unexpected reboot rather than sitting still in a box holding residual
 heat. `shutdown_speed: 1.0` already covers the klippy-disconnect case.
+
+## Field notes from the 0.12 → 0.13 upgrade (2026-08-22)
+
+Everything below was found the hard way during a real run and is now handled by
+`voron-fw.sh`. Kept here because the reasons are not obvious from the code.
+
+**`out/` is shared and per-architecture.** `out/board` is a symlink that points at
+the current target's source dir. Building rp2040 then flashing stm32 without a
+`make clean` links the wrong objects. Worse, every flash method reads `out/`, not
+just the copied image — `make flash` builds from it, and `flash-sdcard.sh` reads
+`out/klipper.dict` to verify. So the tree must match the board being flashed.
+The script tracks this in `fw-out/.last-built` and rebuilds only when the target
+config changes, which is why flashing `hbb` then `eddy` costs one build.
+
+**rp2040 targets emit `klipper.uf2`, not `klipper.bin`.** Copying `.bin`
+unconditionally aborts the whole run under `set -e`, which is how three of five
+builds were silently skipped on the first attempt.
+
+**The rp2040 flash races its own reset.** `make flash FLASH_DEVICE=<by-id>` does
+the 1200-baud DTR touch correctly, the board re-enumerates as `2e8a:0003`, and
+then `flash_usb.py` dies looking for the old sysfs path:
+
+```
+FileNotFoundError: .../1-1.1.5.4/busnum
+```
+
+The board *is* in the ROM bootloader at that point. Retrying with
+`FLASH_DEVICE=2e8a:0003` succeeds. This happened on every rp2040 here, so the
+script now treats it as the expected path rather than an error. A board sitting
+at `2e8a:0003` is not bricked — it is waiting.
+
+**Katapult presence checks do not work the way you would expect.**
+`flashtool.py -q` lists only nodes *already in the bootloader*, and
+`canbus_query.py` lists only nodes *without an assigned CAN id*. A healthy board
+running Klipper appears in neither, so any pre-flight "is it there?" check fails
+on a perfectly good board. `flashtool -u <uuid> -f` sends the reboot-to-bootloader
+request itself. The check was removed.
+
+**Passwordless sudo is required.** `rp2040_flash` touches raw USB as root. Without
+a sudoers rule it fails *mid-sequence* with `sudo: a terminal is required to read
+the password`. Happy Hare's `install.sh` hits the same wall on its final
+`systemctl restart klipper`. `udisksctl` is not a workaround — it needs polkit,
+which also wants a tty. The script now fails fast with the fix.
+
+**Use Moonraker to stop/start Klipper**, not `systemctl` — no sudo, no tty.
+
+**klippy sitting in `error` is normal mid-upgrade** and must not block flashing;
+that is precisely when flashing is needed. The old idle check called
+`/printer/objects/query`, which fails when klippy is down, and reported
+"moonraker unreachable" — refusing to proceed exactly when it should.
+
+**The main board needs a cold boot.** `flash-sdcard.sh` writes `firmware.bin` to
+the onboard SD; the BTT bootloader only reads it at power-on. After flashing, the
+board still reported the *old* version until the printer was fully power cycled —
+a `FIRMWARE_RESTART` or MCU reset is not enough.
+
+**A version mismatch does not always hard-fail.** With five boards on 0.13 and the
+main board still on 0.12.0-85, klippy came up `ready`. The `MCU Protocol error`
+is raised by specific command incompatibilities, not by comparing version
+strings. Do not read a `ready` printer as proof every board took its firmware —
+run `voron-fw.sh verify`.
