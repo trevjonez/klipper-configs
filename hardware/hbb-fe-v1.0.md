@@ -5,7 +5,9 @@ macros (bed / drybox / lights ladders).
 
 | | |
 |---|---|
-| MCU | **RP2040** `[live]` |
+| MCU | **RP2040** `[live]` `[vendor]` |
+| Flash | **W25Q080** `[vendor]` |
+| Key LEDs | **WS2812B** `[vendor]` |
 | Klipper `CLOCK_FREQ` | 12 MHz `[live]` -- **timer base, not core clock** |
 | ADC / PWM | `ADC_MAX=4095`, `PWM_MAX=32768` `[live]` |
 | Transport | USB, direct on the main 7-port hub (`1-1.1.3`) |
@@ -29,19 +31,27 @@ earlier "Put the heater button actions back on the edge that is a physical push"
 and "Fix unreliable long press: drop the shared flag". If you touch the button
 config, re-read those first; the edge semantics have been wrong twice.
 
-## Gap
+## Sources -- no schematic exists
 
-No connector-level pin map recorded, and this is the **weakest-sourced board
-here**. The vendor repo's `Hardware/` holds only bitmaps -- `HBB FE-PIN.jpg`,
-`HBB FE接口图.jpg`, `HBB接口图.jpg` -- plus a SIZE PDF. **There is no schematic
-PDF**, so there is no text source for a pin map.
+`bigtreetech/HBB` has **no schematic PDF**. Confirmed by enumerating all 39
+files in the repo, not by a filtered guess: `Hardware/` holds only
+`BIGTREETECH HBB V1.0-SIZE.pdf` and three bitmaps (`HBB FE-PIN.jpg`,
+`HBB FE接口图.jpg`, `HBB接口图.jpg`).
 
 Per this repo's provenance rules a `[bitmap]`-only pin map is not written down.
-The trustworthy text sources are:
+Two text sources cover it instead:
 
-1. `hbb_voron.cfg` -- ground truth for every pin actually in use `[cfg]`.
-2. `sample-bigtreetech-hbb.cfg` in `bigtreetech/HBB` -- names the connectors
-   `[vendor-cfg]`.
+1. **`BIGTREETECH HBB&FE V1.0 User Manual.pdf`** has a **text layer**. Extract
+   with `pdftotext -layout`; it is where the RP2040 / W25Q080 / WS2812B parts
+   above come from `[vendor]`.
+2. **`sample-bigtreetech-hbb.cfg`** in the same repo -- plain text, names every
+   key pin (`HBB:gpio25` for `key1`, and so on) `[vendor-cfg]`.
 
-Use those. If a full map is ever needed, transcribe from the sample config, not
-the JPG.
+For pins actually **in use**, `hbb_voron.cfg` is already ground truth `[cfg]` and
+needs no vendor source at all.
+
+Worth knowing: that upstream sample config's comments describe the active-low
+button wiring in the same terms as this repo's own commit history, so the
+findings here appear to have been upstreamed.
+
+A fork exists at `trevjonez/HBB`.

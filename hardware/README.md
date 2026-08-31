@@ -18,6 +18,8 @@ number in a hardware doc is worse than no doc.
 | `[klipper]` | Klipper source (`src/`, `klippy/extras/`) | Authoritative for family capability |
 | `[sch]` | Vendor schematic PDF, text layer extracted with `pdftotext -layout` | High -- verifiable text |
 | `[vendor-cfg]` | Vendor `sample-bigtreetech-*.cfg` | High -- plain text |
+| `[vendor]` | Vendor user-manual PDF, text layer extracted | High -- verifiable text |
+| `[owner]` | Purchase record / recollection | Medium -- state it as such, never as verified |
 | `[bitmap]` | Vendor pinout JPG/PNG read visually | **Low. Cross-check only, never a sole source.** |
 
 Anything that would rest on `[bitmap]` alone is left out and marked as a gap.
@@ -64,6 +66,15 @@ assuming.
 | `mcu` | Bear 3 | [Octopus Pro V1.0](octopus-pro-v1.0.md) | STM32F429ZGT6 | USB | `3C002A001651323039323733` |
 | `ercf` | -- | FYSETC ERB | RP2040 | USB | `E66160F423192638` |
 | `menu` | -- | *unidentified* | STM32F042x6 | USB | `210006800C43303848373220` |
+
+Not a Klipper MCU, but on the critical path for two of them:
+
+| Device | Role | MCU | Identity |
+|---|---|---|---|
+| [CAN adapter](can-adapter.md) | USB->CAN for `mmu` + `DRYBOX` | STM32G0B1-class | `1d50:606f`, budgetcan `gs_usb` |
+
+Its **PCB is unconfirmed** -- USB strings come from firmware, not the board. See
+that file; settling it needs one look at the silkscreen.
 
 Identities are `[cfg]`. MCU parts are `[sch]` except RP2040/F042 which are `[live]`.
 
