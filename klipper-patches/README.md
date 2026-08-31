@@ -52,8 +52,25 @@ The `# Determine filenames` comment (configfile.py:381) is the correct seam.
 ```bash
 cd ~/klipper
 git apply ~/klipper-configs/klipper-patches/0001-save_config-follow-symlinks.patch
-sudo systemctl restart klipper      # or FIRMWARE_RESTART
+sudo systemctl restart klipper
+# or: curl -X POST "http://voron.lan:7125/machine/services/restart?service=klipper"
 ```
+
+It must be a **process** restart. `RESTART` and `FIRMWARE_RESTART` are not
+enough, and this was originally documented here as "or FIRMWARE_RESTART", which
+is wrong -- verified 2026-08-31 by watching a patched `aht10.py` stay invisible
+across a `FIRMWARE_RESTART`.
+
+`klippy.py` (lines 93-107) runs `while 1: ... printer = Printer(...); res =
+printer.run(); ... start_args['start_reason'] = res` -- both restart commands
+return a reason into that loop and rebuild the printer objects **inside the same
+Python process**. Extras are loaded with `importlib.import_module('extras.' +
+module_name)`, which hits the `sys.modules` cache on the second pass, so the
+edited file on disk is never re-read. The only difference between `RESTART` and
+`FIRMWARE_RESTART` is that the latter also resets the MCUs.
+
+Corollary: for **config-only** edits prefer `RESTART` -- `FIRMWARE_RESTART`
+needlessly resets all six MCUs.
 
 This leaves the Klipper repo dirty, which **blocks Moonraker's update
 manager** (`git_deploy.py:90` refuses to update a modified repo). Before any
@@ -103,9 +120,18 @@ def _disallow_include_conflicts(self, regular_fileconfig):
 ```
 
 `self.fileconfig` is the pending autosave data; `regular_fileconfig` is the
-config as parsed *with* includes. If Klipper wants to autosave an option that
-is also literally written anywhere — main file or included — the entire
-`SAVE_CONFIG` aborts with that error.
+config as parsed *with* includes. If Klipper wants to autosave an option that is also literally written in
+an **included** file, the entire `SAVE_CONFIG` aborts with that error.
+
+Corrected 2026-08-31: an earlier version of this note said "main file or
+included". That is wrong for the main file. `cmd_SAVE_CONFIG` first runs
+`regular_data = self._strip_duplicates(regular_data, self.fileconfig)`,
+and `_strip_duplicates` **comments out** (prefixes `#`) every option line in
+the main file that the autosave block is about to define. So duplicates in
+the main config are handled automatically and never reach the check -- which
+is why an ordinary `PID_CALIBRATE` + `SAVE_CONFIG` works with `pid_Kp`
+sitting in the body. Only included files are immune to that stripping, hence
+the function's name.
 
 ### What this means for splitting config across files
 
