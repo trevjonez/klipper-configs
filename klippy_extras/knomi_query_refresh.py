@@ -32,7 +32,19 @@
 # Lives in klipper-configs and is symlinked into klippy/extras/ so it survives
 # a Klipper update instead of being clobbered by one.
 
+#
+# TWO periods have to move together, which is not obvious and cost a debugging
+# session to find. webhooks.SUBSCRIPTION_REFRESH_TIME governs how often status
+# is SERVED; extras/motion_report.py STATUS_REFRESH_TIME (also 0.250) governs
+# how often live_position is RECOMPUTED -- get_status() returns a cached value
+# until then. Changing only the first makes clients fetch the same number more
+# often and improves nothing, while shortening the interval between samples
+# enough to upset anything measuring rate per sample.
+#
+
 import logging
+import sys
+
 import webhooks
 
 
@@ -41,6 +53,10 @@ class KnomiQueryRefresh:
         self.printer = config.get_printer()
         # whatever Klipper shipped, so RESET cannot drift from upstream
         self.default = webhooks.SUBSCRIPTION_REFRESH_TIME
+        # motion_report is an extra, so reach its module through the loaded
+        # object rather than guessing at an import path
+        self._mr_mod = None
+        self._mr_default = None
         self.min_period = config.getfloat('min_period', 0.02, above=0.)
         self.max_period = config.getfloat('max_period', 2., above=0.)
         gcode = self.printer.lookup_object('gcode')
@@ -51,6 +67,21 @@ class KnomiQueryRefresh:
         # running its status loop fast until the next restart.
         self.printer.register_event_handler("klippy:shutdown", self._restore)
         self.printer.register_event_handler("klippy:disconnect", self._restore)
+        self.printer.register_event_handler("klippy:connect", self._find_motion_report)
+
+    def _find_motion_report(self):
+        mr = self.printer.lookup_object('motion_report', None)
+        if mr is None:
+            return
+        mod = sys.modules.get(type(mr).__module__)
+        if mod is not None and hasattr(mod, 'STATUS_REFRESH_TIME'):
+            self._mr_mod = mod
+            self._mr_default = mod.STATUS_REFRESH_TIME
+
+    def _set_period(self, period, motion_period):
+        webhooks.SUBSCRIPTION_REFRESH_TIME = period
+        if self._mr_mod is not None:
+            self._mr_mod.STATUS_REFRESH_TIME = motion_period
 
     cmd_SET_QUERY_REFRESH_help = (
         "Set Klipper's status refresh period. PERIOD=<seconds> or RESET=1")
@@ -61,18 +92,22 @@ class KnomiQueryRefresh:
         else:
             period = gcmd.get_float('PERIOD', minval=self.min_period,
                                     maxval=self.max_period)
-        webhooks.SUBSCRIPTION_REFRESH_TIME = period
-        logging.info("knomi_query_refresh: status refresh period now %.3fs",
-                     period)
+        self._set_period(period, period)
+        logging.info("knomi_query_refresh: status refresh period now %.3fs "
+                     "(motion_report %s)", period,
+                     "n/a" if self._mr_mod is None else "%.3fs" % period)
         gcmd.respond_info("status refresh period = %.3fs (default %.3fs)"
                           % (period, self.default))
 
     def _restore(self):
-        webhooks.SUBSCRIPTION_REFRESH_TIME = self.default
+        self._set_period(self.default,
+                         self._mr_default if self._mr_default else 0.25)
 
     def get_status(self, eventtime):
         return {'period': webhooks.SUBSCRIPTION_REFRESH_TIME,
-                'default': self.default}
+                'default': self.default,
+                'motion_period': (self._mr_mod.STATUS_REFRESH_TIME
+                                  if self._mr_mod else 0.)}
 
 
 def load_config(config):
