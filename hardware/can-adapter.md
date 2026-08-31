@@ -1,12 +1,12 @@
-# CAN adapter (USB `gs_usb`)
+# BIGTREETECH U2C V2.1 (USB-to-CAN adapter)
 
 Not a Klipper `[mcu]`. It is the Pi's CAN interface and the **only** path to
 `[mcu mmu]` and `[mcu DRYBOX]` -- both MMB boards hang off it.
 
 | | |
 |---|---|
-| PCB | **unconfirmed** -- see below |
-| MCU | **STM32G0B1-class** (64 MHz) `[live]` |
+| PCB | **BIGTREETECH U2C V2.1** `[owner]` -- visually identified, corroborated below |
+| MCU | **STM32G0B1** (64 MHz) `[live]` `[vendor]` |
 | Firmware | **budgetcan** (`gs_usb` class) `[live]` |
 | Host driver | `gs_usb` `[live]` |
 | USB id | `1d50:606f` (OpenMoko / Geschwister Schneider CAN adapter) `[live]` |
@@ -44,17 +44,15 @@ it cannot invent clock the silicon does not have.
 board. `bigtreetech/U2C` publishes schematics for **V1.0 and V1.1 only** -- there
 is no V2.x schematic to verify against.
 
-### Two candidates, both consistent
+### Settled
 
-1. **BTT U2C V2.x reflashed with budgetcan firmware.** Fits, but conflicts with
-   "mine is pretty old" -- an old unit is more likely V1.x, and V1.x is ruled out
-   by the clock.
-2. **An actual BudgetCAN-design adapter** (open hardware, STM32G0B1), never a BTT
-   board at all. Fits the USB strings without needing a reflash.
+The board was **read visually as a V2.1** `[owner]`, which agrees with the clock
+evidence above. So: a **BTT U2C V2.1 running budgetcan firmware** rather than
+BTT's stock build -- which is why nothing on the wire says BigTreeTech.
 
-**To settle it: read the silkscreen.** The board is labelled. That is one glance
-and it beats any amount of further inference -- which is why no version is
-asserted here.
+The exact package/flash suffix remains unverified: `bigtreetech/U2C` publishes
+schematics for **V1.0 and V1.1 only**, so unlike the MMB (`STM32G0B1CBT6`, from
+its schematic) there is no V2.x schematic to read a full part number from.
 
 ## Bus configuration
 
@@ -81,10 +79,22 @@ Healthy at the time of writing: 6.2 M packets RX / 1.9 M TX, and **zero** across
 and it is capable of switching it. The bus is error-free, so termination is
 coming from elsewhere; the MMB CAN V1.0 carries a selectable 120 R.
 
-**Unverified:** which physical ends terminate. Worth confirming before blaming
-CAN errors on anything else.
+**Unverified:** which physical ends terminate. Three other devices on this bus
+each have a selectable 120 R -- see the table in
+[ceb-can-hub.md](ceb-can-hub.md), and trace the jumpers before adding a node.
 
-## Nodes on this bus
+## Topology
+
+The adapter does **not** wire straight to the MMBs. A passive
+[CEB V1.0 hub](ceb-can-hub.md) splits the bus, which is where spare CAN capacity
+lives (~4 free ports):
+
+```
+Pi 4B ── USB ── U2C V2.1 (termination OFF)
+                  └── CEB V1.0 (passive, 120R jumper)
+                        ├── MMB  ff345a743db9  [mcu mmu]
+                        └── MMB  d9626e1b839e  [mcu DRYBOX]
+```
 
 | Klipper MCU | Board | uuid |
 |---|---|---|

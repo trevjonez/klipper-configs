@@ -71,10 +71,16 @@ Not a Klipper MCU, but on the critical path for two of them:
 
 | Device | Role | MCU | Identity |
 |---|---|---|---|
-| [CAN adapter](can-adapter.md) | USB->CAN for `mmu` + `DRYBOX` | STM32G0B1-class | `1d50:606f`, budgetcan `gs_usb` |
+| [U2C V2.1](can-adapter.md) | USB->CAN adapter | STM32G0B1 | `1d50:606f`, budgetcan `gs_usb` |
+| [CEB V1.0](ceb-can-hub.md) | passive CAN hub, ~4 spare ports | none | -- |
 
-Its **PCB is unconfirmed** -- USB strings come from firmware, not the board. See
-that file; settling it needs one look at the silkscreen.
+```
+Pi 4B ── USB ── U2C V2.1 ── CEB V1.0 ─┬── MMB  [mcu mmu]
+                                      └── MMB  [mcu DRYBOX]
+```
+
+The U2C runs **budgetcan** firmware, not BTT stock, so nothing in `lsusb`
+identifies it as BigTreeTech -- USB strings come from firmware, not the PCB.
 
 Identities are `[cfg]`. MCU parts are `[sch]` except RP2040/F042 which are `[live]`.
 
