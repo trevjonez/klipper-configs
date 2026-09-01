@@ -153,6 +153,22 @@ software bus also leaned on the internal pull-ups (it releases high via
   `is_enabled_pclock` `[klipper]`.
 * **`START_NACK` means an absent device**, not a bus conflict. Seen once here
   when the sensor was unplugged mid-mounting.
+* **The PTC's AC SSR is driven below its rated minimum, and works anyway.** The
+  SSR is labelled **5-24 V** on its control input; PA1 supplies **3.3 V**. It has
+  never misbehaved, and an SSR input is just an LED and series resistor, so 3.3 V
+  can forward-bias it fine. Recorded because it is marginal by spec: if the
+  drybox ever heats *intermittently*, or works cold and fails hot, suspect this
+  before suspecting the sensor, the gains, or the config. A small transistor
+  driving the SSR from the 5 V or 24 V rail would put it in spec.
+
+  The 3.3 V figure is **inferred, not measured** -- from `AMS1117-3.3` on the
+  board, the STM32G0B1's 1.7-3.6 V range, and BTT's "Logic voltage: DC 3.3 V".
+  Note the schematic also contains a **TXS0104** 4-bit level shifter, and it is
+  not established which four signals it serves (the I2C pair is the likely
+  candidate). If PA1 were one of them it would be 5 V and in spec. To settle it,
+  meter the Sensor header's **signal** pin against GND -- not the 5 V pin, which
+  every header carries -- with the heater commanded on.
+
 * **Thermistors on STP headers.** The drybox element thermistor is on STP1
   (PA3), an endstop-style header. Those typically carry a board pull-up that may
   not match Klipper's default `pullup_resistor: 4700`, which would skew readings.
