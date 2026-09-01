@@ -50,6 +50,47 @@ between boards -- see `firmware/README.md`.
 
 Bear 3 is pending a hardware rebuild to match 1 and 2.
 
+## The bed is mains, not 24 V
+
+`BED_OUT` (PA1) does **not** carry bed current. It is an onboard power MOSFET
+switching **24 V into the control input of an AC SSR**, and the bed heater itself
+runs on mains:
+
+```
+BED_OUT (PA1, Octopus MOSFET) --24V--> AC SSR --mains--> bed heater
+```
+
+So the 24 V rail carries no bed load. The drybox PTC is mains behind an SSR too,
+but driven differently -- see [mmb-can-v1.0.md](mmb-can-v1.0.md).
+
+### Protection, in order
+
+1. **`verify_heater`** -- catches commanded heat that produces no gain.
+2. **Losing the 24 V rail** drops `BED_OUT`, so the SSR's control disappears and
+   the bed cannot energise. Note this protects the *control path* only: an SSR
+   that has failed **shorted** ignores its input entirely, and shorted is the
+   characteristic SSR failure mode.
+3. **A thermal fuse on the bed, rated 130 C / 15 A** `[owner]`. This is the only
+   layer that survives a welded SSR, which is why it matters.
+
+### The thermal fuse is one-shot, and the margin is thin
+
+It does not reset. Tripping it means pulling the bed apart to replace it.
+
+`[heater_bed]` is currently `max_temp: 120` against a **130 C** fuse -- 10 C of
+margin, and that margin is smaller in practice than it reads:
+
+* the bed thermistor and the fuse sit at different points on the plate, and a
+  350 mm bed can run several degrees hotter near the heater pad than at the
+  sensor;
+* PID overshoot on a mains bed adds a few more, even at `max_power: 0.6`.
+
+So a legitimate `M140 S120` could plausibly put the fuse's location at its trip
+point. **Consider lowering `max_temp` to ~110**, which still covers ABS/ASA and
+makes it impossible for software, a bad macro, or a runaway loop to command the
+bed into a part that can only fail once. Not yet applied -- it caps bed
+temperature, so it is a deliberate decision rather than a safe default.
+
 ## Hardware I2C buses
 
 Declared for this family, with usage on the **Voron** `[klipper]` + `[cfg]`:
