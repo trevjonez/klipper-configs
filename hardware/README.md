@@ -125,6 +125,12 @@ report 12 MHz `[live]`; that is Klipper's timer base, derived from the 12 MHz
 crystal. The Cortex-M0+ cores still run at their normal speed. Do not read it as
 a 12 MHz CPU.
 
+## Power
+
+Rails, switching and what limits them: [power.md](power.md). Short version --
+the **Meanwell LRS-200-24 (8.8 A)** is the ceiling on the 24 V rail, and both
+big heat loads (bed, drybox PTC) are **mains** behind AC SSRs rather than 24 V.
+
 ## Related
 
 * `firmware/README.md` -- what to flash each board with, bootloader offsets,
