@@ -1,7 +1,9 @@
-.idea/
-*.iml
-# SAVE_CONFIG backups (land here once the symlink patch is applied)
-voron-2*.cfg
 
 # Happy Hare runtime state, not config
+.idea/
+*.iml
 mmu/mmu_vars.cfg
+*.pyc
+__pycache__/
+# SAVE_CONFIG backups (land here once the symlink patch is applied)
+voron-2*.cfg
