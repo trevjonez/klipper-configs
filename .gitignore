@@ -1,9 +1,12 @@
-
-# Happy Hare runtime state, not config
 .idea/
 *.iml
+
+# Happy Hare runtime state, not config
 mmu/mmu_vars.cfg
-*.pyc
-__pycache__/
+
 # SAVE_CONFIG backups (land here once the symlink patch is applied)
 voron-2*.cfg
+
+# Byte-compiled klippy_extras from local testing; the pi imports the source
+__pycache__/
+*.pyc
