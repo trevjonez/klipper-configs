@@ -73,23 +73,27 @@ but driven differently -- see [mmb-can-v1.0.md](mmb-can-v1.0.md).
 3. **A thermal fuse on the bed, rated 130 C / 15 A** `[owner]`. This is the only
    layer that survives a welded SSR, which is why it matters.
 
-### The thermal fuse is one-shot, and the margin is thin
+### The thermal fuse is one-shot -- and why `max_temp: 120` is correct
 
-It does not reset. Tripping it means pulling the bed apart to replace it.
+The fuse does not reset. Tripping it means pulling the bed apart to replace it.
 
-`[heater_bed]` is currently `max_temp: 120` against a **130 C** fuse -- 10 C of
-margin, and that margin is smaller in practice than it reads:
+**Do not "tighten" `max_temp` toward the working temperature.** It is a shutdown
+threshold, not a target cap: Klipper halts the moment the sensor exceeds it. The
+highest bed target actually used here is **110**, and `max_temp: 120` exists so
+that normal PID overshoot above 110 does not trip that shutdown mid-print.
+Lowering it to 110 would cause exactly the failure it is there to prevent.
 
-* the bed thermistor and the fuse sit at different points on the plate, and a
-  350 mm bed can run several degrees hotter near the heater pad than at the
-  sensor;
-* PID overshoot on a mains bed adds a few more, even at `max_power: 0.6`.
+The real margin to the fuse is therefore measured from **110 plus overshoot**,
+not from 120:
 
-So a legitimate `M140 S120` could plausibly put the fuse's location at its trip
-point. **Consider lowering `max_temp` to ~110**, which still covers ABS/ASA and
-makes it impossible for software, a bad macro, or a runaway loop to command the
-bed into a part that can only fail once. Not yet applied -- it caps bed
-temperature, so it is a deliberate decision rather than a safe default.
+* target 110, PID overshoot a few degrees -> sensor peaks ~113-115;
+* the thermistor and the fuse sit at different points on a 350 mm plate, so the
+  fuse's location may run several degrees hotter still.
+
+That leaves a comfortable gap to **130 C**, and the arrangement is sound as it
+stands. The number to protect is the *working target*, not `max_temp` -- if a
+future filament ever tempts you toward a 120 bed, that is the moment to re-check
+this, because 120 sensed could put the fuse's location close to its trip point.
 
 ## Hardware I2C buses
 
