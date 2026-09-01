@@ -15,6 +15,12 @@ different things on each, and why firmware `INITIAL_PINS` is not interchangeable
 | Crystal | PF0/PF1, reserved `[live]` |
 | Bootloader | Katapult, 8 KiB offset (`FLASH_START_2000`) -- see `firmware/README.md` |
 | Build config | `firmware/mmb-g0b1-mmu.config`, `firmware/mmb-g0b1-drybox.config` |
+| Board revision | **V1.0**, read from the silkscreen of a spare board `[owner]` |
+
+BTT publish hardware files for **V1.0 and V2.0 only** -- V1.1 has no separate
+folder and shares the "V1.0&V1.1" user manual, so V1.0 documentation covers a
+V1.1 board too. **V2.0 is a different board** with its own schematic and pinout;
+none of the map below applies to it.
 
 `CONFIG_FLASH_SIZE=0x20000` (128 KB) in the build config independently agrees
 with the `B` in `STM32G0B1CBT6`.
@@ -70,6 +76,12 @@ rather than marked as a gap:
 
 `[bitmap]` The vendor `MMB CAN V1.0-Pin.jpg` also agrees, but is treated as
 corroboration only.
+
+The V1.0 map is additionally confirmed to be the *right* map for these boards,
+independent of the silkscreen: Happy Hare's `MMU_PRE_GATE_0..7` resolve to
+PB9, PB8, PC15, PC13, PC14, PB12, PB11, PB10 -- exactly STP3..STP10 in order --
+and `mmu/base/mmu.cfg:16` names the board type `MMB10`. A V2.0 board could not
+produce that agreement.
 
 ## In use
 
