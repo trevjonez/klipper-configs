@@ -36,9 +36,18 @@ with the `B` in `STM32G0B1CBT6`.
 it has stepper driver sockets and logic headers, and **no heater or fan MOSFETs
 at all**.
 
-This matters for the drybox, whose 350 W PTC heater and 3-fan relay are *both*
-driven through **external relays** off logic pins (PA1 and PB2). Anything else
-you want to switch needs its own external driver too.
+This matters for the drybox. Its 350 W PTC heater runs on **AC mains**, switched
+by an SSR whose control signal comes from `MMB_SENSOR` (PA1); the three 24 V fans
+are switched by a MOSFET off `MMB_STP11` (PB2). Both are external devices driven
+from 3.3 V logic pins. Anything else you want to switch needs its own driver too.
+
+**Safety consequence worth knowing:** the drybox PTC and the heated bed are both
+mains-powered, and both take their SSR control signal from a 24 V-powered board
+(`MMB_SENSOR` here, `BED_OUT` on the Octopus). Losing the 24 V rail therefore
+drops both control signals and disables every mains heating element in the
+machine. That is a useful interlock -- but SSRs characteristically fail
+*shorted*, so it is not a substitute for disconnecting mains before working on
+either heater.
 
 ## Connector map
 
