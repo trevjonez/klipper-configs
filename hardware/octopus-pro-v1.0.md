@@ -73,6 +73,20 @@ but driven differently -- see [mmb-can-v1.0.md](mmb-can-v1.0.md).
 3. **A thermal fuse on the bed, rated 130 C / 15 A** `[owner]`. This is the only
    layer that survives a welded SSR, which is why it matters.
 
+The bed SSR itself is a **25 A Omron, 5-24 V control** `[owner]`. Note the
+contrast with the drybox, which uses an SSR of the *same* 5-24 V control rating:
+
+| | control drive | in spec? |
+|---|---|---|
+| bed | 24 V from `BED_OUT` (Octopus power MOSFET) | **yes** |
+| drybox PTC | 3.3 V direct from `MMB_SENSOR` (PA1) | **no** -- below the 5 V minimum |
+
+Both work. The bed's is comfortable; the drybox's is running under-driven and is
+recorded as a gotcha in [mmb-can-v1.0.md](mmb-can-v1.0.md), because an
+under-driven opto is a plausible cause of *future* intermittent behaviour. The
+difference is only that the Octopus has power MOSFETs to switch 24 V with and the
+MMB does not.
+
 ### The thermal fuse is one-shot -- and why `max_temp: 120` is correct
 
 The fuse does not reset. Tripping it means pulling the bed apart to replace it.
