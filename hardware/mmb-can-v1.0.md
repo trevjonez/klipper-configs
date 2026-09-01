@@ -36,10 +36,20 @@ with the `B` in `STM32G0B1CBT6`.
 it has stepper driver sockets and logic headers, and **no heater or fan MOSFETs
 at all**.
 
-This matters for the drybox. Its 350 W PTC heater runs on **AC mains**, switched
-by an SSR whose control signal comes from `MMB_SENSOR` (PA1); the three 24 V fans
-are switched by a MOSFET off `MMB_STP11` (PB2). Both are external devices driven
-from 3.3 V logic pins. Anything else you want to switch needs its own driver too.
+This matters for the drybox. Its 350 W PTC heater runs on **AC mains** behind an
+AC SSR, and the SSR is controlled by 24 V -- the same layout the heated bed uses.
+The difference is the stage in between:
+
+```
+bed      BED_OUT (Octopus onboard MOSFET) --24V--> AC SSR --mains--> bed
+drybox   MMB_SENSOR (3.3V logic) --> external MOSFET --24V--> AC SSR --mains--> PTC
+```
+
+The Octopus can switch 24 V directly because it has power MOSFETs. The MMB has
+none, so the drybox needs that extra MOSFET stage to get from a 3.3 V logic pin
+to the 24 V the SSR wants. The three 24 V fans are likewise switched by an
+external MOSFET off `MMB_STP11` (PB2). Anything else you want to switch here
+needs its own driver too.
 
 **Safety consequence worth knowing:** the drybox PTC and the heated bed are both
 mains-powered, and both take their SSR control signal from a 24 V-powered board
