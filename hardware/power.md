@@ -194,6 +194,18 @@ recorded in earlier drafts is resolved for this part. The control-input voltage
 and current were not written down; add them here if they get measured, since a
 different SSR of the same nominal rating may not repeat this.
 
+### The rewire cost a night of CAN debugging
+
+Not a fault of the rail work itself, but caused by it: relocating the PSU and
+rewiring knocked the **120 R terminator jumper off the CAN adapter**, and the CAN
+bus did not work again until it was found on the floor and refitted. Nothing
+about the symptom pointed at power -- see
+[ceb-can-hub.md](ceb-can-hub.md) for the full trail.
+
+**After any mechanical work in the electronics bay, meter 60 R across CANH-CANL
+before assuming the change you made is at fault.** Jumpers are the smallest thing
+in there and the easiest to dislodge.
+
 ### Open
 
 * Record the SSR control-input voltage and current if they get metered. The part

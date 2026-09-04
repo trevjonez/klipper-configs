@@ -7,7 +7,7 @@ Not a Klipper `[mcu]`. It is the Pi's CAN interface and the **only** path to
 |---|---|
 | PCB | **BIGTREETECH U2C V2.1** `[owner]` -- visually identified, corroborated below |
 | MCU | **STM32G0B1** (64 MHz) `[live]` `[vendor]` |
-| Firmware | **budgetcan** (`gs_usb` class) `[live]` |
+| Firmware | **budgetcan** (`gs_usb` class) -- and this *is* BTT's stock image `[live]` |
 | Host driver | `gs_usb` `[live]` |
 | USB id | `1d50:606f` (OpenMoko / Geschwister Schneider CAN adapter) `[live]` |
 | USB strings | `iManufacturer=budgetcan`, `iProduct=budgetcan gs_usb` `[live]` |
@@ -18,8 +18,8 @@ Not a Klipper `[mcu]`. It is the Pi's CAN interface and the **only** path to
 ## The PCB cannot be identified from software
 
 **This is the gotcha, and it is why searching for this board is frustrating.**
-Every USB string comes from the *flashed firmware*, not the PCB. This unit runs
-open-source **budgetcan** firmware, so the host reports:
+Every USB string comes from the *flashed firmware*, not the PCB. The firmware
+here is **budgetcan**, so the host reports:
 
 ```
 Bus 001 Device 005: ID 1d50:606f OpenMoko, Inc. Geschwister Schneider CAN adapter
@@ -47,8 +47,48 @@ is no V2.x schematic to verify against.
 ### Settled
 
 The board was **read visually as a V2.1** `[owner]`, which agrees with the clock
-evidence above. So: a **BTT U2C V2.1 running budgetcan firmware** rather than
-BTT's stock build -- which is why nothing on the wire says BigTreeTech.
+evidence above: a **BTT U2C V2.1 running budgetcan firmware**.
+
+**It is running BTT's stock image, not a third-party build.** An earlier draft of
+this file had that backwards -- it read the `budgetcan` strings as evidence the
+board had been reflashed away from stock. It has not. BTT ship a budgetcan-branded
+build, verified two ways:
+
+* `strings ~/U2C_V2_STM32G0B1.bin` on BTT's own binary contains `budgetcan`,
+  `budgetcan gs_usb` and `budgetcan firmware upgrade interface` -- exactly what
+  the running board reports.
+* That local binary is **md5 `d890f048...` , byte-identical to upstream HEAD**
+  (`raw.githubusercontent.com/bigtreetech/U2C/master/firmware/`).
+
+So nothing on the wire says BigTreeTech because **BTT chose not to put it there**,
+not because the board was reflashed.
+
+Upstream has not moved since **2023-01-16** (*"update U2C V2 G0B1 firmware, fix
+Canboot error"*). That commit is what Katapult's README means when it says the
+U2C v2.1 "requires the latest firmware" -- so this board is current, and there is
+no newer image to chase.
+
+### Katapult does not apply to this board
+
+Katapult is a bootloader for **Klipper** MCUs. The U2C does not run Klipper, so
+Katapult offers it nothing. Its only mention of the U2C is the reverse
+dependency above: the adapter needs recent firmware for Katapult's *CAN flashing
+of other nodes* to work.
+
+### Making it self-identify would mean a custom build
+
+`bcdDevice` is `0000` and the strings say budgetcan, so neither board revision
+nor firmware version can be read back. Fixing that means rebuilding budgetcan
+with custom USB descriptors.
+
+**The VID/PID must stay `1d50:606f`.** The `gs_usb` driver binds on that pair; a
+BigTreeTech-specific id would not bind and the adapter would simply stop working.
+Only `iManufacturer`, `iProduct` and `bcdDevice` are free to change.
+
+Judged not worth it: it puts a self-built image on the *only* path to both MMBs
+and diverges from the exact binary Katapult validates against, for cosmetic gain.
+The **USB serial is already a unique, firmware-independent identifier** -- it is
+the STM32 96-bit UID -- and is the right thing to match on in udev.
 
 The exact package/flash suffix remains unverified: `bigtreetech/U2C` publishes
 schematics for **V1.0 and V1.1 only**, so unlike the MMB (`STM32G0B1CBT6`, from
@@ -73,15 +113,24 @@ Healthy at the time of writing: 6.2 M packets RX / 1.9 M TX, and **zero** across
 `re-started`, `bus-errors`, `arbit-lost`, `error-warn`, `error-pass`, `bus-off`
 `[live]`. Those counters are the first thing to check for CAN trouble.
 
-### Termination is OFF at the adapter
+### Termination is a PHYSICAL jumper, and `termination` in `ip` is a lie
 
-`termination 0 [ 0, 120 ]` -- the adapter's own 120 R terminator is **disabled**,
-and it is capable of switching it. The bus is error-free, so termination is
-coming from elsewhere; the MMB CAN V1.0 carries a selectable 120 R.
+The adapter terminates with a **jumper on the PCB**. It must be fitted: this is
+one of the bus's two terminated ends.
 
-**Unverified:** which physical ends terminate. Three other devices on this bus
-each have a selectable 120 R -- see the table in
-[ceb-can-hub.md](ceb-can-hub.md), and trace the jumpers before adding a node.
+`ip -d link show can0` reports `termination 0 [ 0, 120 ]`, and **that field means
+nothing on this board.** It is a capability the budgetcan firmware advertises
+over `gs_usb` with no hardware behind it. Proven on 2026-09-04 by toggling
+`ip link set can0 type can termination 0|120` through three cycles while metering
+CANH-CANL: the reading never moved. The field also read `0` for however long the
+jumper was correctly fitted, so it is wrong in both directions and cannot be used
+to check termination either way.
+
+**Meter it, or look at the jumper. Do not trust `ip`.** 60 R across CANH-CANL is
+a correctly terminated bus; 120 R means only one end is terminated.
+
+This is the exception to the `[live]` provenance rule in
+[README.md](README.md) -- see the caveat there.
 
 ## Topology
 

@@ -13,7 +13,7 @@ number in a hardware doc is worse than no doc.
 
 | Tag | Source | Trust |
 |---|---|---|
-| `[live]` | The MCU's own startup report in `klippy.log` (`MCU '<name>' config:`) | Highest -- the silicon describing itself |
+| `[live]` | The MCU's own startup report in `klippy.log` (`MCU '<name>' config:`) | Highest -- the silicon describing itself, but see the caveat below |
 | `[cfg]` | This repo's own `.cfg` files | Highest for *what is in use* |
 | `[klipper]` | Klipper source (`src/`, `klippy/extras/`) | Authoritative for family capability |
 | `[sch]` | Vendor schematic PDF, text layer extracted with `pdftotext -layout` | High -- verifiable text |
@@ -23,6 +23,19 @@ number in a hardware doc is worse than no doc.
 | `[bitmap]` | Vendor pinout JPG/PNG read visually | **Low. Cross-check only, never a sole source.** |
 
 Anything that would rest on `[bitmap]` alone is left out and marked as a gap.
+
+### `[live]` is not unconditionally trustworthy
+
+A device reports what its **firmware** claims, which is not always what the
+hardware does. The known case: `ip -d link show can0` reports
+`termination 0 [ 0, 120 ]` on the U2C adapter, but that board terminates with a
+**physical jumper** and the field is unbacked firmware advertising -- it reads
+`0` whether the jumper is fitted or not. Trusting it cost a night of debugging on
+2026-09-04; see [can-adapter.md](can-adapter.md).
+
+The rule still holds for what silicon reports *about itself* -- clock, flash
+size, part family, pin config. Treat a **capability or accessory state** as a
+claim to verify, not as measurement.
 
 ## Printers
 
