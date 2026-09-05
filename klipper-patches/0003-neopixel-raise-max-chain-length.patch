@@ -1,0 +1,13 @@
+diff --git a/klippy/extras/neopixel.py b/klippy/extras/neopixel.py
+index b160fc2f4..2c6a2b818 100644
+--- a/klippy/extras/neopixel.py
++++ b/klippy/extras/neopixel.py
+@@ -11,7 +11,7 @@ BACKGROUND_PRIORITY_CLOCK = 0x7fffffff00000000
+ BIT_MAX_TIME=.000004
+ RESET_MIN_TIME=.000050
+ 
+-MAX_MCU_SIZE = 500  # Sanity check on LED chain length
++MAX_MCU_SIZE = 1024  # Sanity check on LED chain length
+ 
+ class PrinterNeoPixel:
+     def __init__(self, config):
