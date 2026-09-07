@@ -1,5 +1,25 @@
 # Klipper patch: raise the neopixel chain-length cap
 
+> **STATUS: no longer required.** The 334-LED WS2812B halo this patch existed
+> for was never installed. The halo is now **16x WS2814 RGBW** = 16 x 4 = 64
+> bytes, comfortably under the stock `MAX_MCU_SIZE` of 500. No other chain on
+> this machine is close to the cap either -- the largest is `drybox` at 40 GRB
+> pixels = 120 bytes, then `mmu_leds` at 16 GRB = 48, `sb_leds` at 10 mixed
+> GRB/GRBW = 32, `HBB_LED` at 7 GRB = 21, `fysetc_mini12864` at 3 RGB = 9.
+>
+> **The patch was reverted on 2026-09-06** (`git checkout
+> klippy/extras/neopixel.py` in `~/klipper`, followed by a full
+> `systemctl restart klipper`). `MAX_MCU_SIZE` is back to the stock 500 and the
+> halo parses and lights correctly under it.
+>
+> Reverting it did **not** unblock Moonraker's update manager, and was not
+> expected to: patch `0001` still modifies `klippy/configfile.py`, so Klipper
+> remains `is_dirty: true`. The gain is one less patch to re-apply after an
+> update, not restored update-manager function.
+>
+> Everything below is retained as the original reasoning, and would apply again
+> if a long chain is ever fitted.
+
 ## The problem
 
 The halo strip was replaced with a finer-pitch WS2812B run of **334 LEDs**.
