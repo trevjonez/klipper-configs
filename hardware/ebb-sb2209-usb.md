@@ -119,9 +119,49 @@ Known from `[cfg]`: hotend heater on `gpio7`, part cooling and hotend fans on
 `gpio4`/`gpio14`. Extruder driven by the onboard TMC2209. Phaetus Dragon High
 Flow heat break, T-D500 thermistor (`thermistor_T-D500.cfg`).
 
+## I2C header
+
+**The board has a dedicated I2C port on the rear of the main PCB, intended for
+the BTT Eddy Coil.** `[owner]` -- seen on our board 2026-09-11; the vendor wiki
+carries a matching `#i2c` section (`global.bttwiki.com/EBB SB2209 USB.html`),
+but that section is an image with no text layer, same failure as the pinout PDF
+below.
+
+| Fact | Value | Provenance |
+|---|---|---|
+| Pins | `gpio28` / `gpio29` | `[owner]` read from the wiki image, **cross-checked** below |
+| Klipper bus name | **`i2c0h`** | `[klipper]` -- `src/rp2040/i2c.c:43`, `BUS_PINS_i2c0h = "gpio28,gpio29"` |
+| Both pins free? | Yes | `[cfg]` -- in use: 1, 4, 6, 7, 14, 15, 17-22, 26 |
+| Any I2C configured? | No | `[cfg]` -- the LIS2DW is **SPI** (`spi_bus: spi0a`, `cs_pin: EBB:gpio1`) |
+
+The pin numbers would otherwise rest on `[bitmap]` alone, which the provenance
+rules forbid as a sole source. They are recorded here because Klipper's own
+source independently confirms gpio28/29 is a valid I2C0 pair -- the bitmap is
+corroboration, not the basis.
+
+### Why this matters
+
+The full BTT Eddy's RP2040 is what trips `max_temp: 100` and kills long ABS
+prints (see `hosts/voron.md` in the home-network repo, **Eddy probe calibration
+-> Still outstanding**). The Eddy **Coil** is LDC1612-only over I2C, so moving to
+it removes that MCU from the toolhead and with it the failure mode. The LDC1612
+is a TI industrial part rated far above the RP2040's 85 C ambient.
+
+Cost: the Coil has no onboard thermistor, so no `[temperature_probe]` drift
+compensation. That matters less here than it first appears -- Z-zero comes from
+**tap** (nozzle-to-bed contact), and `voron.md` records that "coil temperature is
+irrelevant to Z-zero". The residual exposure is `BED_MESH_CALIBRATE
+METHOD=rapid_scan`, which does use the frequency table. Even there a uniform
+thermal bias should largely cancel, since a mesh is relative and tap sets the
+absolute zero -- but that is reasoning, not measurement, and is untested.
+
+Not yet established: whether the port supplies enough current for the coil, the
+connector type/keying, and the cable BTT ships with the Coil.
+
 ## Gap
 
-No connector-level pin map recorded. Sources, with what is known about each:
+Connector-level pin map beyond the I2C header above. Sources, with what is
+known about each:
 
 * `EBB_SB2209_USB/Hardware/BIGTREETECH EBB SB2209 USB V1.0-SCH.pdf` -- **has a
   text layer**, and is where the RP2040 / W25Q16 / TMC2209 / MAX31865 parts came
