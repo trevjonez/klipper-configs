@@ -228,14 +228,23 @@ except Exception as e:
 mcus=[o for o in objs if o=="mcu" or o.startswith("mcu ")]
 q="&".join(urllib.parse.quote(m) for m in mcus)
 st=json.load(urllib.request.urlopen(base+"/printer/objects/query?"+q,timeout=10))["result"]["status"]
-vers={}
+# Compare on the git-describe part only. A tree with klipper-patches applied
+# builds every image "-dirty-<timestamp>-<host>", and the script rebuilds per
+# board (shared out/), so timestamps always differ and a full-string compare can
+# never succeed. The commit is what actually has to match.
+def base(v): return v.split("-dirty")[0]
+vers={}; dirty=0
 for m in mcus:
     d=st.get(m,{}); v=d.get("mcu_version","?")
-    vers.setdefault(v,[]).append(m)
+    if "-dirty" in v: dirty+=1
+    vers.setdefault(base(v),[]).append(m)
     print("   %-12s %-30s INITIAL_PINS=%s" % (m, v, d.get("mcu_constants",{}).get("INITIAL_PINS","-")))
 print()
 if len(vers)==1:
-    print("   all %d MCUs on %s" % (len(mcus), list(vers)[0])); sys.exit(0)
+    print("   all %d MCUs on %s" % (len(mcus), list(vers)[0]))
+    if dirty:
+        print("   (%d built from a patched tree -- '-dirty' suffixes differ and are ignored)" % dirty)
+    sys.exit(0)
 print("   MIXED VERSIONS -- a board was missed or needs a power cycle:")
 for v,ms in vers.items(): print("     %s  <- %s" % (v, ", ".join(ms)))
 sys.exit(1)
