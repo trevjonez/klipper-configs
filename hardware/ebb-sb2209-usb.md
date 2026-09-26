@@ -35,6 +35,35 @@ So unplugging or re-enumerating the EBB takes the Eddy with it. Port numbering
 under the main hub is not stable across reboots or re-cabling -- match by the
 `by-id` serial, never by USB path.
 
+### Downstream USB ports: JST-PH 4-pin, one pinout
+
+The hub is an **FE1.1S** `[sch]`. One of its four downstream ports goes to the
+EBB's own RP2040. The other three come out to **4-pin headers** `[sch]`.
+
+| | |
+|---|---|
+| Connector | **JST-PH 4-pin (2.0 mm)**. Not from a BTT document: Cartographer's own V4 toolhead-cable listing names this end "JST-PH 4pin" and lists the SB2209 USB and EBB36 Gen2 as the boards it fits. Medium trust. |
+| Pinout, relative to the key | **5V · D− · D+ · GND**, identical on all three. Owner-checked against the board 2026-09-24 `[owner]` |
+
+**Trap: the diagram makes them look mirrored, and they aren't.** Read top to
+bottom, BTT's pin diagram lists one front port as 5V·DM·DP·GND and the other as
+GND·DP·DM·5V, and one schematic symbol (P4) is numbered in reverse from the
+other two (P5, P7). That's only placement. The headers are rotated on the board,
+and relative to each connector's own key the order is the same. So **a cable
+that's correct on one port is correct on all three.** It was nearly written up
+here as a 5V/GND-swap hazard on 2026-09-24, until checked against the board.
+
+Not established: which physical header is which hub port number. It doesn't
+matter in practice, because the pinouts match and Klipper finds a device by its
+`by-id` serial, not its port.
+
+**Probe cables.** The BTT Eddy's lead does **not** fit a Cartographer V4. The
+EBB end is fine, but the V4 has a **Molex Sherlock 4-pin** on the probe (per
+Cartographer's product listing, same trust as the JST-PH row above).
+Cartographer's "BTT Gen2" toolhead cable (18 cm, Sherlock 4-pin to JST-PH 4-pin)
+is the matching part. The Sherlock end's pinout is not recorded here, so check
+it before crimping a cable yourself.
+
 ## The link is NOT a plain USB cable
 
 This matters more than anything else on this page, and it is invisible from the
@@ -160,8 +189,8 @@ connector type/keying, and the cable BTT ships with the Coil.
 
 ## Gap
 
-Connector-level pin map beyond the I2C header above. Sources, with what is
-known about each:
+Connector-level pin map beyond the I2C header above and the USB headers (see
+**Downstream USB ports**). Sources, with what is known about each:
 
 * `EBB_SB2209_USB/Hardware/BIGTREETECH EBB SB2209 USB V1.0-SCH.pdf` -- **has a
   text layer**, and is where the RP2040 / W25Q16 / TMC2209 / MAX31865 parts came

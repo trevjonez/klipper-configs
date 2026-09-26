@@ -37,12 +37,11 @@ BOARDS=(
 "mmu|mmb-g0b1-mmu|katapult|ff345a743db9|MMB CAN V1.0 (MMU) on CAN"
 "drybox|mmb-g0b1-drybox|katapult|d9626e1b839e|MMB CAN V1.0 (drybox) on CAN"
 "hbb|rp2040-hbb-eddy|rp2040|/dev/serial/by-id/usb-Klipper_rp2040_45474E621B056C7A-if00|HBB&FE macro pad on USB"
-"eddy|rp2040-hbb-eddy|rp2040|/dev/serial/by-id/usb-Klipper_rp2040_504434031060B01C-if00|BTT Eddy on USB (via EBB hub)"
 "ebb|rp2040-ebb|rp2040|/dev/serial/by-id/usb-Klipper_rp2040_5044340310CA481C-if00|EBB SB2209 USB toolhead"
 "main|octopus-f429|sdcard|/dev/serial/by-id/usb-Klipper_stm32f429xx_0D0028001647323037343634-if00|Octopus Pro F429 via SD card"
 )
 SDCARD_BOARD_ID="btt-octopus-pro-f429-v1.0"
-declare -A MCU_NAME=( [mmu]="mmu" [drybox]="DRYBOX" [hbb]="HBB" [eddy]="EDDY" [ebb]="EBB" [main]="mcu" )
+declare -A MCU_NAME=( [mmu]="mmu" [drybox]="DRYBOX" [hbb]="HBB" [ebb]="EBB" [main]="mcu" )
 
 c()   { printf '\033[%sm%s\033[0m' "$1" "$2"; }
 info(){ printf '%s %s\n' "$(c '1;34' '::')" "$*"; }

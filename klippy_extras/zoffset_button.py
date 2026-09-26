@@ -15,12 +15,11 @@
 #
 # This bypasses voron_knomi.cfg's [gcode_macro SET_GCODE_OFFSET] wrapper, which
 # is currently a pure passthrough to SET_GCODE_OFFSET_ORIG, so nothing is lost.
-# But that wrapper declares variable_runtime_offset, and SET_Z_FROM_PROBE adds
-# it back after a tap -- clearly meant to carry manual babystepping across a
-# re-tap. Nothing anywhere writes runtime_offset, so it is permanently 0 and
-# that carry-over silently does not happen. If it is ever wired up, this module
-# has to record its steps there too or the buttons will be the one path that
-# still gets wiped by a tap.
+# That wrapper still declares variable_runtime_offset, an Eddy-era leftover:
+# SET_Z_FROM_PROBE used to add it back after each tap. That macro went with the
+# Eddy (2026-09-25). Z-zero is now CARTOGRAPHER_TOUCH_HOME, and homing_override
+# clears the G-Code Z offset right after it -- so a button step, like any other
+# babystep, lasts until the next Z home unless saved with Z_OFFSET_APPLY_PROBE.
 #
 # Offsets are applied the way gcode_move.cmd_SET_GCODE_OFFSET does for
 # Z_ADJUST. A RESTORE_GCODE_STATE in an enclosing macro would revert an

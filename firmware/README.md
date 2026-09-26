@@ -13,7 +13,7 @@ See `docs/voron-upgrade.md` in the `home-network` repo for the full procedure.
 |---|---|---|---|---|
 | `mcu` | BTT Octopus Pro **F429** | `octopus-f429.config` | USB | [docs](https://github.com/bigtreetech/docs/blob/master/docs/Octopus%20Pro.md) · [repo](https://github.com/bigtreetech/BIGTREETECH-OCTOPUS-Pro) |
 | `EBB` | BTT EBB SB2209 **USB** | `rp2040-ebb.config` | USB | [docs](https://github.com/bigtreetech/docs/blob/master/docs/EBB%20SB2209%20USB.md) · [repo](https://github.com/bigtreetech/EBB) |
-| `EDDY` | BTT Eddy | `rp2040-hbb-eddy.config` | USB, via the EBB's hub | [docs](https://github.com/bigtreetech/docs/blob/master/docs/Eddy.md) · [repo](https://github.com/bigtreetech/Eddy) |
+| `cartographer` | Cartographer V4 (replaced the BTT Eddy 2026-09-25) | **not built here**: prebuilt from [cartographer_firmware](https://github.com/Cartographer3D/cartographer_firmware), flashed via Katapult, and not in `voron-fw.sh` -- see home-network `docs/voron-cartographer-v4.md` | USB, via the EBB's hub | [docs](https://docs.cartographer3d.com) · [plugin](https://github.com/Cartographer3D/cartographer3d-plugin) |
 | `mmu` | BTT MMB CAN V1.0 (`MMB10`) | `mmb-g0b1-mmu.config` | CAN | [docs](https://github.com/bigtreetech/docs/blob/master/docs/MMB%20CAN%20V1.0.md) |
 | `DRYBOX` | BTT MMB CAN V1.0 | `mmb-g0b1-drybox.config` | CAN | same as above |
 | `HBB` | BTT HBB&FE V1.0 (macro pad, RGB key switches) | `rp2040-hbb-eddy.config` | USB | [repo](https://github.com/bigtreetech/HBB) · [sample cfg](https://github.com/bigtreetech/HBB/blob/master/sample-bigtreetech-hbb.cfg) |

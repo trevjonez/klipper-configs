@@ -3,7 +3,23 @@
 How the Voron is powered, and what actually limits it. Board identity is in the
 per-board files; this is the rails and the switching.
 
-## The 24 V supply is the ceiling
+## Two rails since 2026-09-24
+
+The machine ran on a single 24 V rail until 2026-09-24, when a **48 V supply was
+added for stepper motor power only**. Logic is untouched: the Octopus, both
+MMBs, the EBB and every sensor still run from 24 V. What moved is the driver
+VM on the six Octopus TMC5160s and the two MMB EZ5160s.
+
+Nothing in Klipper expresses a supply voltage for a TMC, so the only place the
+machine records this is `voltage:` in `voron_autotune.cfg` -- it feeds PWM_OFS,
+PWM_GRAD and the chopper hysteresis. `[autotune_tmc extruder]` is the one
+section still on 24, because the EBB's 2209 is genuinely still on 24 V.
+
+**TODO -- the 48 V supply's make, model and rating are not recorded here.**
+Fill them in; the 24 V budget below only became a non-question because the
+steppers left it, and that argument is unverifiable without the 48 V figures.
+
+## The 24 V supply
 
 | | |
 |---|---|
@@ -36,12 +52,16 @@ drive-voltage difference.
 
 What the 24 V rail does carry:
 
-* Octopus Pro logic and six TMC5160 steppers
+* Octopus Pro logic -- but **not** the six TMC5160s' motor supply, which is on
+  48 V as of 2026-09-24. Their VCC_IO side is still 24 V-derived.
 * hotend heater, via the EBB (~50-60 W)
 * fans: part cooling, hotend, Nevermore, exhaust, electronics bay
 * three drybox fans (core + two blowers)
 * five neopixel chains
-* both MMB boards, over their XT30s, plus the MMU gear and selector steppers
+* both MMB boards, over their XT30s. The MMU gear and selector steppers are
+  **no longer on this rail** -- their EZ5160s take motor power from 48 V, while
+  the MMB's own XT30 stays at 24 V. The MMB is a 24 V board and putting 48 V on
+  that connector would take the onboard regulator with it.
 * the EBB USB adaptor's 24 V input (10 A fuse on that board)
 * **the Terminus hub chain** (FE 2.1 7-port, plus a 4-port below it), and so
   every USB MCU and the CAN adaptor hanging off it
@@ -75,7 +95,7 @@ as a sanity check, not a spec.
 | load | est. |
 |---|---|
 | hotend heater | 2.1-2.5 A |
-| 6x TMC5160 (DC input, not coil current) | 2-3 A |
+| ~~6x TMC5160 (DC input, not coil current)~~ | ~~2-3 A~~ moved to 48 V |
 | fans (five, main machine) | 1-1.5 A |
 | neopixels (rarely full white) | 0.5-2 A |
 | MMBs + MMU steppers | 0.5-1 A |
@@ -85,6 +105,11 @@ Plausible peak lands somewhere around **7-11 A against a 8.8 A supply**, so a
 worst case -- printing while the drybox runs, the MMU moves and the LEDs are
 bright -- may sit at or over the limit.
 
+Moving the steppers to 48 V takes an estimated 2-3 A off that peak, which is
+the single biggest line item after the hotend. It does not make the budget
+*measured* -- every figure above still has wide error bars -- but it does mean
+the worst case is no longer sitting on the supply's nameplate.
+
 **If unexplained MCU resets or brownouts ever appear, PSU capacity is a prime
 suspect.** To move this from estimate to fact, measure PSU output current under a
 representative load. A 350 Voron with an MMU and a drybox is a lot for a 200 W
@@ -93,18 +118,36 @@ supply; an LRS-350-24 (14.6 A) is the usual step up.
 *(The USB dropouts on 2026-09-01 were traced to cables, not power -- new cables
 fixed them. Recorded here only so the two are not conflated later.)*
 
-## Switching the 24 V rail
+## Switching the rails
 
-The Pi runs from its own 5 V supply and a **DC SSR** switches the 24 V rail, so
-the machine can be powered down independently of mains while the Pi stays up.
+The Pi runs from its own 5 V supply and a **DC SSR** switches each rail, so the
+machine can be powered down independently of mains while the Pi stays up.
 
 | | |
 |---|---|
-| SSR | **60 A, 3-32 V DC control, -DD** `[owner]` |
+| SSRs | **two**, both 60 A, 3-32 V DC control, -DD `[owner]` |
 | Pi GPIO | **3.3 V only**, not 5 V tolerant, ~16 mA/pin |
-| Control pin | **GPIO 26** (header pin 37) |
+| Control pin | **GPIO 26** (header pin 37) -- **one pin drives both** |
 
-60 A against an 8.8 A supply is enormously oversized, which is harmless.
+The 48 V SSR added on 2026-09-24 is the identical part on the identical control
+pin, wired in parallel with the 24 V one. That is deliberate and is the right
+shape: there is one switch, both rails rise and fall together, and no software
+knows there are two. **Moonraker's `[power printer]` needed no change at all.**
+
+Keeping them ganged also sidesteps the failure mode a split would invite. A
+TMC5160 with motor power present and its logic supply absent is an abuse
+condition, so 48 V must never be up while 24 V is down. Sharing one control leg
+makes that true by construction rather than by sequencing logic.
+
+60 A against either supply is enormously oversized, which is harmless.
+
+**One thing the parallel wiring does change: GPIO 26 now drives two SSR inputs,
+so it sources roughly twice the current it did.** An SSR input is an LED and a
+series resistor, and this pin was never metered -- the "Open" item below has
+been outstanding since the first SSR went in. It is now twice as worth closing,
+because the Pi is only good for ~16 mA/pin and the margin, whatever it is, just
+halved. If the rails ever fail to come up together, or come up unreliably,
+measure here first.
 
 **It must be a -DD, and it is.** A -DA is DC-control but **AC**-load: its output
 is a triac, which only stops conducting at a zero crossing. On a DC rail there is
@@ -145,6 +188,28 @@ off_when_shutdown_delay: 300
 locked_while_printing: True
 bound_services: klipper
 ```
+
+**`initial_state: off` is load-bearing, and the live file said `on` until
+2026-09-24** -- this doc had been describing an intent the machine never had.
+The symptom was the rail coming up by itself on every boot, which reads as
+Mainsail or Klipper doing it and is neither: Moonraker's GPIO device bakes the
+initial state into the pin claim itself (`power.py:644`,
+`initial_val = int(self.initial_state or 0)`), so the line is driven high the
+moment Moonraker starts.
+
+Note `off` is not the same as omitting the line, because of `bound_services`:
+
+| | rail at boot | klipper service |
+|---|---|---|
+| `initial_state: on` | on | started |
+| `initial_state: off` | off | **actively stopped** (`power.py:332`) |
+| line omitted | off | left running (`power.py:650-651` skips the branch) |
+
+`off` is the coherent one. Klipper with the rail down is erroring against MCUs
+that are gone from the bus, so stopping it is correct, and Mainsail then renders
+a powered-off printer with a toggle rather than a fault. Verified 2026-09-24:
+after `systemctl restart moonraker`, klipper goes `inactive`, the device reads
+`off`, and `raspi-gpio get 26` reports `level=0 func=OUTPUT`.
 
 **`bound_services: klipper`, not `restart_klipper_when_powered`.** The latter is
 what this file called for before and is superseded in current Moonraker. It
@@ -208,9 +273,10 @@ in there and the easiest to dislodge.
 
 ### Open
 
-* Record the SSR control-input voltage and current if they get metered. The part
-  works at 3.3 V, but the figures are not written down and the Pi is only good
-  for ~16 mA/pin.
+* Record the SSR control-input voltage and current if they get metered. The
+  parts work at 3.3 V, but the figures are not written down and the Pi is only
+  good for ~16 mA/pin -- now across **two** SSR inputs in parallel.
+* Record the 48 V supply's make, model and current rating.
 
 **Closed: the Octopus MCU power jumper.** Its manual section 4.4 allows powering
 the MCU from USB-C via a jumper, which would have meant the SSR was not a genuine
