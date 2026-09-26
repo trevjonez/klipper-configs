@@ -115,8 +115,26 @@ produce that agreement.
 | PB2 | STP11 | fan relay (all 3 fans) | selector endstop |
 | PB3/PB4 | I2C | BME280 (hardware i2c3) | free |
 | PB8..PB12, PC13..PC15 | STP3..STP10 | free | pre-gate sensors 0-7 |
-| PA5/PA6/PA7 | SPI | free | PA7 only by the *unloaded* ERCF cutter addon |
+| PA5/PA6/PA7 | SPI | free | **SPI bus to both EZ5160s** (was: PA7 only by the *unloaded* ERCF cutter addon) |
 | M1..M4 | stepper | free | M1 = gear, M2 = selector |
+
+### The mmu board's drivers are SPI as of 2026-09-24
+
+M1 and M2 carry **BTT EZ5160 Pro** drivers, replacing EZ2209s. TMC5160 is
+SPI-only in Klipper, so each socket's `uart_pin` became `cs_pin` on the *same*
+pin -- `MMB_M1_CS` (PA10) and `MMB_M2_CS` (PC7) -- and the shared clock and data
+lines come off the SPI header.
+
+PA5/PA6/PA7 is **`spi1_PA6_PA7_PA5`**, a real hardware bus on this part
+(`src/stm32/spi.c`, the `CONFIG_MACH_STM32G0` branch), and the mmu firmware
+build has `CONFIG_HAVE_GPIO_SPI=y`. So `spi_bus:` is used rather than the three
+`spi_software_*_pin` lines -- the same conclusion as the drybox I2C above, for
+the same reason.
+
+**Motor power for these two sockets is 48 V; the board's own XT30 stays 24 V.**
+See [power.md](power.md). The MMB is a 24 V board -- its XT30 feeds the onboard
+regulator, so 48 V there would destroy it. Nothing in this board's config
+records the motor voltage; it lives in `voron_autotune.cfg`.
 
 **13 free non-stepper pins on DRYBOX:** PA0, PA4, PB8, PB9, PB10, PB11, PB12,
 PC13, PC14, PC15, PA5, PA6, PA7.
