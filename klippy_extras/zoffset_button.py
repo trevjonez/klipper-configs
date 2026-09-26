@@ -6,7 +6,8 @@
 # file's header for the full explanation.
 #
 # WHAT THIS STILL CANNOT DO: a G-Code offset applies to moves parsed AFTER it
-# changes. Moves already in the lookahead are committed and cannot be rewritten
+# changes (any move -- the press also shifts gcode_move.last_position, see
+# button_callback). Moves already in the lookahead are committed and cannot be rewritten
 # by anything. So a press reaches the nozzle only once the queued moves drain
 # -- measured at 1.0-1.8s on this machine -- and a single long G1 cannot be
 # adjusted at all while it runs. A 200mm prime line emitted as ONE move is
@@ -78,9 +79,16 @@ class ZOffsetButton:
         if not state:
             return
         gcode_move = self.printer.lookup_object('gcode_move')
-        # The two fields cmd_SET_GCODE_OFFSET writes for a Z_ADJUST.
+        # The two fields cmd_SET_GCODE_OFFSET writes for a Z_ADJUST...
         gcode_move.base_position[2] += self.step
         gcode_move.homing_position[2] += self.step
+        # ...plus what its MOVE=1 does to the target position, minus the move itself.
+        # Without this the offset only reached the nozzle on the next G1 that
+        # carries a Z word, and slicers emit Z only at layer changes: first-layer
+        # and prime-line moves are all X/Y/E, so a press did nothing until the next
+        # layer (found 2026-09-26, 0.225mm of presses queued up unapplied). With it,
+        # the next move of any kind goes to the new height.
+        gcode_move.last_position[2] += self.step
         z = self._z_offset()
         # display_status is not rate limited and KlipperScreen renders it as
         # the job-status LCD line, so this stays correct through a fast burst
